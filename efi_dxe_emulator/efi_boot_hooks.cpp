@@ -656,6 +656,28 @@ hook_CreateEvent(uc_engine *uc, uint64_t address, uint32_t size, void *user_data
     
     LOG_UC_BACKTRACE(uc, "CreateEvent()");
     
+    uint64_t r_rcx;
+    uc_reg_read(uc, UC_X86_REG_RCX, &r_rcx);
+    DEBUG_MSG("Event type: %ull\n", r_rcx);
+
+
+    uint64_t r_rdx;
+    uc_reg_read(uc, UC_X86_REG_RDX, &r_rdx);
+    EFI_TPL NotifyTpl = r_rdx;
+    DEBUG_MSG("NotifyTpl: %ull\n", NotifyTpl);
+
+    uint64_t r_r8;
+    uc_reg_read(uc, UC_X86_REG_R8, &r_r8);
+    auto NotifyFunc = reinterpret_cast<EFI_EVENT_NOTIFY>(r_r8);
+    DEBUG_MSG("NotifyFun: %p\n", NotifyFunc);
+
+    uint64_t r_rsp;
+    uc_reg_read(uc, UC_X86_REG_RSP, &r_rsp);
+    uint64_t Event;
+    uc_mem_read(uc, r_rsp += 5 * sizeof(uint64_t), &Event, sizeof(Event));
+    uint64_t val = 0xdeadbeef;
+    uc_mem_write(uc, Event, &val, sizeof(val));
+
     /* return value */
     uint64_t r_rax = EFI_SUCCESS;
     err = uc_reg_write(uc, UC_X86_REG_RAX, &r_rax);
@@ -928,6 +950,18 @@ hook_RegisterProtocolNotify(uc_engine *uc, uint64_t address, uint32_t size, void
     
     LOG_UC_BACKTRACE(uc, "RegisterProtocolNotify()");
     
+    uint64_t r_rcx;
+    uc_reg_read(uc, UC_X86_REG_RCX, &r_rcx);
+    EFI_GUID Protocol = { 0 };
+    uc_mem_read(uc, r_rcx, &Protocol, sizeof(Protocol));
+    DEBUG_MSG("Protocol: %s (%s)\n",
+        guid_to_string(&Protocol), get_guid_friendly_name(Protocol));
+
+    uint64_t r_rdx;
+    uc_reg_read(uc, UC_X86_REG_RDX, &r_rdx);
+    auto Event = reinterpret_cast<EFI_EVENT>(r_rdx);
+    DEBUG_MSG("Event: %p\n", Event);
+
     /* return value */
     uint64_t r_rax = EFI_SUCCESS;
     err = uc_reg_write(uc, UC_X86_REG_RAX, &r_rax);
